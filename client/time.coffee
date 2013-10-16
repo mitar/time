@@ -67,8 +67,10 @@ Template.viewer.rendered = ->
           alert "Error fetching dataset: #{ error.status } #{ error.statusText }"
           return
 
-        data.forEach (d) =>
+        for d in data
           d.Date = moment.utc(d.Date).toDate()
+          for name, value of d when name isnt 'Date'
+            d[name] = +value
 
         @viewer.area = d3.svg.area().interpolate('monotone').x(
           (d) => @viewer.x(d.Date)
