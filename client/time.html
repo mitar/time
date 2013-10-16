@@ -1,0 +1,80 @@
+<head>
+  <title>Collaborative time-series viewer</title>
+</head>
+
+<body>
+  <p>This time-series viewer is shared with all others viewing it.</p>
+  {{> viewer}}
+  {{> search}}
+  {{> searchResults}}
+</body>
+
+<template name="viewer">
+  <div class="viewer">
+    {{#constant}}
+      <svg width="500" height="500">
+      </svg>
+    {{/constant}}
+    {{> datasets}}
+  </div>
+</template>
+
+<template name="datasets">
+  <ul class="datasets">
+    {{#each datasets}}
+      {{> datasetsItem}}
+    {{/each}}
+  </ul>
+</template>
+
+<template name="datasetsItem">
+  <li class="datasets-item"><input type="color" class="color" value="{{this.color}}" /> {{this.name}} <a href="" class="remove">[x]</a></li>
+</template>
+
+<template name="search">
+  <div class="search">
+    <form class="search-form">
+      <input type="text" class="query" />
+      <input type="submit" value="Search" />
+    </form>
+  </div>
+</template>
+
+<template name="searchResults">
+  {{#if active}}
+    <div class="search-results">
+      {{#if searchResultsCount}}
+        {{> searchResultsCount}}
+        <ul>
+          {{#each searchResults}}
+            {{> searchResultsItem}}
+          {{/each}}
+        </ul>
+      {{else}}
+        <div class="no-results">No datasets found.</div>
+      {{/if}}
+    </div>
+  {{/if}}
+</template>
+
+<template name="searchResultsCount">
+  <div class="search-results-count">
+    Datasets found: {{searchResultsCount}} ({{searchResultsShown}} shown)
+  </div>
+</template>
+
+<template name="searchResultsItem">
+  <li class="search-results-item">
+    <ul>
+      <li class="name">{{this.name}}</li>
+      <li class="from_date">{{this.from_date}}</li>
+      <li class="to_date">{{this.to_date}}</li>
+      <li class="frequency">{{this.frequency}}</li>
+      <li class="columns">{{columns this.column_names}}</li>
+      <li class="description">{{this.description}}</li>
+    </ul>
+    <div class="add-dataset">
+      <input type="button" value="Add" title="Add dataset to the viewer" class="add-dataset-button" />
+    </div>
+  </li>
+</template>
