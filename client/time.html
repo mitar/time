@@ -5,18 +5,15 @@
 <body>
   <p>This time-series viewer is shared with all others viewing it.</p>
   {{> viewer}}
+  {{> datasets}}
   {{> search}}
   {{> searchResults}}
 </body>
 
 <template name="viewer">
-  <div class="viewer">
-    {{#constant}}
-      <svg width="500" height="500">
-      </svg>
-    {{/constant}}
-    {{> datasets}}
-  </div>
+  {{#constant}}
+    <div class="viewer"></div>
+  {{/constant}}
 </template>
 
 <template name="datasets">

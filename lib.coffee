@@ -1,2 +1,2 @@
-@Viewer = new Meteor.Collection 'Viewer'
+@ViewerStates = new Meteor.Collection 'ViewerStates'
 @Datasets = new Meteor.Collection 'Datasets'
