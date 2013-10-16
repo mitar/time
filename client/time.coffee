@@ -80,6 +80,7 @@ Template.searchResults.active = ->
 Template.searchResults.searchResults = ->
   datasets = _.pluck Datasets.find({}).fetch(), 'code'
   SearchResults.find
+    column_names: 'Date' # We limit only to those which have 'Date' as a column
     code:
       $nin: datasets
 
@@ -101,13 +102,10 @@ Template.searchResultsItem.events =
   'click .add-dataset-button': (e, template) ->
     colors = _.pluck Datasets.find({}).fetch(), 'color'
     unique = _.difference PALETTE, colors
-    if unique.length
-      color = unique[0]
-    else
-      color = randomColor()
+    color = if unique.length then unique[0] else randomColor()
     Datasets.insert
       name: template.data.name
       code: template.data.code
-      columns: template.data.column_names
+      columns: _.without template.data.column_names, 'Date' # We require all to have 'Date' as a column
       color: color
 

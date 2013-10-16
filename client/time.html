@@ -28,7 +28,15 @@
 </template>
 
 <template name="datasetsItem">
-  <li class="datasets-item"><input type="color" class="color" value="{{this.color}}" /> {{this.name}} <a href="" class="remove">[x]</a></li>
+  <li class="datasets-item"><input type="color" class="color" value="{{this.color}}" /> {{this.name}} {{> datasetsItemColumns}}<a href="" class="remove">[x]</a></li>
+</template>
+
+<template name="datasetsItemColumns">
+  <select class="datasets-item-columns">
+    {{#each this.columns}}
+      <option value="{{this}}">{{this}}</option>
+    {{/each}}
+  </select>
 </template>
 
 <template name="search">
