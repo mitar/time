@@ -14,6 +14,8 @@ PALETTE = [
 ]
 API_KEY = Meteor.settings?.public?.API_KEY
 
+datasets = {}
+
 Meteor.startup ->
   Session.set 'searchResultsCount', undefined
 
@@ -51,15 +53,144 @@ class Viewer
     @yAxis = d3.svg.axis().scale(@y).orient('left')
 
     @brush = d3.svg.brush().x(@x2).on 'brush', =>
+      return
+
+      # TODO
       @x.domain(if @brush.empty() then @x2.domain() else @brush.extent())
-      @focus.select('path').attr('d', @area)
+      @focus.select('path').attr('d', @line)
       @focus.select('.x.axis').call(@xAxis)
+
+    @datesExtent = []
+    @ysExtent = []
+
+  computeLines: (id) =>
+    datasets[id].line = d3.svg.line().interpolate('monotone').x(
+      (d) => @x(d.Date)
+    ).y(
+      (d) => @y(d[datasets[id].fields.selectedColumn])
+    )
+
+    datasets[id].line2 = d3.svg.line().interpolate('monotone').x(
+      (d) => @x2(d.Date)
+    ).y(
+      (d) => @y2(d[datasets[id].fields.selectedColumn])
+    )
+
+  computeNewExtent: (id) =>
+    newDatesExtend = d3.extent datasets[id].data.map((d) => d.Date)
+    @datesExtent = d3.extent(@datesExtent.concat newDatesExtend...)
+
+    newYsExtent = d3.extent datasets[id].data.map((d) => d[datasets[id].fields.selectedColumn])
+    @ysExtent = d3.extent(@ysExtent.concat newYsExtent...)
+
+    if @ysExtent[0] > 0
+      @ysExtent[0] = 0
+
+  computeExtents: =>
+    @datesExtent = []
+    @ysExtent = []
+
+    for id of datasets
+      @computeNewExtent id
+
+  resetDomains: =>
+    @x.domain(@datesExtent)
+    @y.domain(@ysExtent)
+    @x2.domain(@x.domain())
+    @y2.domain(@y.domain())
+
+  resetAxes: =>
+    @focus.selectAll('g').remove()
+
+    @context.selectAll('g').remove()
+
+    return if _.isEmpty datasets
+
+    @focus.append('g').attr('class', 'x axis').attr('transform', 'translate(0,' + @height + ')').call(@xAxis)
+
+    @focus.append('g').attr('class', 'y axis').call(@yAxis)
+
+    @context.append('g').attr('class', 'x axis').attr('transform', 'translate(0,' + @height2 + ')').call(@xAxis2)
+
+  resetLines: =>
+    for id, dataset of datasets
+      dataset.focusPath.attr('d', dataset.line)
+      dataset.contextPath.attr('d', dataset.line2)
+
+  addedDataset: (id) =>
+    return unless datasets[id]
+
+    @computeLines id
+
+    @computeNewExtent id
+
+    @resetDomains()
+
+    datasets[id].focusPath = @focus.append('path').datum(datasets[id].data).attr('clip-path', 'url(#clip)').style('stroke', datasets[id].fields.color)
+
+    datasets[id].contextPath = @context.append('path').datum(datasets[id].data).style('stroke', datasets[id].fields.color)
+
+    @resetAxes()
+
+    @resetLines()
+
+    #@context.append('g').attr('class', 'x brush').call(@brush)
+    #  .selectAll('rect').attr('y', -6).attr('height', @height2 + 7)
+
+  removedDataset: (id, dataset) =>
+    return if datasets[id]
+
+    @computeExtents()
+
+    @resetDomains()
+
+    dataset.focusPath.remove()
+    dataset.contextPath.remove()
+
+    @resetAxes()
+
+    @resetLines()
+
+  changeColor: (id) =>
+    return unless datasets[id]
+
+    datasets[id].focusPath.style('stroke', datasets[id].fields.color)
+    datasets[id].contextPath.style('stroke', datasets[id].fields.color)
+
+  changeSelectedColumn: (id) =>
+    return unless datasets[id]
+
+    @computeLines id
+
+    @computeExtents()
+
+    @resetDomains()
+
+    @resetAxes()
+
+    @resetLines()
 
 Template.viewer.rendered = ->
   return if @handle
 
   @node = @find '.viewer'
   @viewer = new Viewer()
+
+  @viewer.svg = d3.select(@node).append('svg').attr(
+    'width', @viewer.width + @viewer.margin.left + @viewer.margin.right
+  ).attr(
+    'height', @viewer.height + @viewer.margin.top + @viewer.margin.bottom
+  )
+
+  @viewer.svg.append('defs').append('clipPath').attr('id', 'clip')
+    .append('rect').attr('width', @viewer.width).attr('height', @viewer.height)
+
+  @viewer.focus = @viewer.svg.append('g')
+    .attr('transform', 'translate(' + @viewer.margin.left + ',' + @viewer.margin.top + ')')
+
+  @viewer.context = @viewer.svg.append('g')
+    .attr('transform', 'translate(' + @viewer.margin2.left + ',' + @viewer.margin2.top + ')')
+  
   @handle = Datasets.find({}).observeChanges
     added: (id, fields) =>
       d3.csv apiKeyURL("http://www.quandl.com/api/v1/datasets/#{ fields.code }.csv"), (error, data) =>
@@ -72,80 +203,25 @@ Template.viewer.rendered = ->
           for name, value of d when name isnt 'Date'
             d[name] = +value
 
-        @viewer.area = d3.svg.area().interpolate('monotone').x(
-          (d) => @viewer.x(d.Date)
-        ).y0(@viewer.height).y1(
-          (d) => @viewer.y(d[fields.selectedColumn])
-        )
+        datasets[id] =
+          data: data
+          fields: fields
 
-        @viewer.area2 = d3.svg.area().interpolate('monotone').x(
-          (d) => @viewer.x2(d.Date)
-        ).y0(@viewer.height2).y1(
-          (d) => @viewer.y2(d[fields.selectedColumn])
-        )
-
-        svg = d3.select(@node).append('svg').attr(
-          'width', @viewer.width + @viewer.margin.left + @viewer.margin.right
-        ).attr(
-          'height', @viewer.height + @viewer.margin.top + @viewer.margin.bottom
-        )
-
-        svg.append("defs").append("clipPath")
-            .attr("id", "clip")
-          .append("rect")
-            .attr("width", @viewer.width)
-            .attr("height", @viewer.height)
-
-        @viewer.focus = svg.append("g")
-            .attr("transform", "translate(" + @viewer.margin.left + "," + @viewer.margin.top + ")")
-
-        context = svg.append("g")
-            .attr("transform", "translate(" + @viewer.margin2.left + "," + @viewer.margin2.top + ")")
-
-        @viewer.x.domain(d3.extent(data.map((d) => d.Date)))
-        @viewer.y.domain([0, d3.max(data.map((d) => d[fields.selectedColumn]))])
-        @viewer.x2.domain(@viewer.x.domain());
-        @viewer.y2.domain(@viewer.y.domain());
-
-        @viewer.focus.append("path")
-            .datum(data)
-            .attr("clip-path", "url(#clip)")
-            .attr("d", @viewer.area)
-
-        @viewer.focus.append("g")
-            .attr("class", "x axis")
-            .attr("transform", "translate(0," + @viewer.height + ")")
-            .call(@viewer.xAxis);
-
-        @viewer.focus.append("g")
-            .attr("class", "y axis")
-            .call(@viewer.yAxis);
-
-        context.append("path")
-            .datum(data)
-            .attr("d", @viewer.area2)
-
-        context.append("g")
-            .attr("class", "x axis")
-            .attr("transform", "translate(0," + @viewer.height2 + ")")
-            .call(@viewer.xAxis2)
-
-        context.append("g")
-            .attr("class", "x brush")
-            .call(@viewer.brush)
-          .selectAll("rect")
-            .attr("y", -6)
-            .attr("height", @viewer.height2 + 7)
+        @viewer.addedDataset id
 
     changed: (id, fields) =>
-      color = fields.color
-
-      return unless color
-
-      console.log "color", color
+      if fields.color
+        datasets[id].fields.color = fields.color
+        @viewer.changeColor id
+      if fields.selectedColumn
+        datasets[id].fields.selectedColumn = fields.selectedColumn
+        @viewer.changeSelectedColumn id
 
     removed: (id) =>
-      console.log "removed", id
+      if datasets[id]
+        dataset = datasets[id]
+        delete datasets[id]
+        @viewer.removedDataset id, dataset
 
 Template.viewer.destroyed = ->
   @handle.stop() if @handle
@@ -171,7 +247,18 @@ Template.datasetsItem.events =
   'click .remove': (e, template) ->
     e.preventDefault()
 
-    Datasets.remove template.data._id
+    Datasets.remove @_id
+
+Template.datasetsItemColumns.events =
+  'change .datasets-item-columns': (e, template) ->
+    Datasets.update @_id,
+      $set:
+        selectedColumn: $(e.currentTarget).val()
+
+Template.datasetsItemColumns.columns = ->
+  for c in @columns
+    name: c
+    selected: 'selected="selected"' if c is @selectedColumn
 
 Template.search.events =
   'submit .search-form': (e, template) ->
@@ -227,11 +314,11 @@ Template.searchResultsItem.events =
     colors = _.pluck Datasets.find({}).fetch(), 'color'
     unique = _.difference PALETTE, colors
     color = if unique.length then unique[0] else randomColor()
-    columns = _.without template.data.column_names, 'Date' # We require all to have 'Date' as a column
+    columns = _.without @column_names, 'Date' # We require all to have 'Date' as a column
     Datasets.insert
-      foreignId: template.data.id
-      name: template.data.name
-      code: "#{ template.data.source_code}/#{ template.data.code }"
+      foreignId: @id
+      name: @name
+      code: "#{ @source_code}/#{ @code }"
       columns: columns
       selectedColumn: columns[0]
       color: color

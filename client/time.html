@@ -30,8 +30,8 @@
 
 <template name="datasetsItemColumns">
   <select class="datasets-item-columns">
-    {{#each this.columns}}
-      <option value="{{this}}">{{this}}</option>
+    {{#each columns}}
+      <option value="{{this.name}}" {{this.selected}}>{{this.name}}</option>
     {{/each}}
   </select>
 </template>
