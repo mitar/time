@@ -3,7 +3,6 @@
 </head>
 
 <body>
-  <p>This time-series viewer is shared with all others viewing it.</p>
   {{> viewer}}
   {{> datasets}}
   {{> search}}
@@ -12,7 +11,9 @@
 
 <template name="viewer">
   {{#constant}}
-    <div class="viewer"></div>
+    <div class="viewer">
+      <p class="comment floatright">This time-series viewer is shared with all others viewing it.</p>
+    </div>
   {{/constant}}
 </template>
 
@@ -25,11 +26,11 @@
 </template>
 
 <template name="datasetsItem">
-  <li class="datasets-item"><input type="color" class="color" value="{{this.color}}" /> {{this.name}} {{> datasetsItemColumns}}<a href="" class="remove">[x]</a></li>
+  <li class="datasets-item"><input type="color" class="color" value="{{this.color}}" /> {{this.name}} {{> datasetsItemColumns}}<a href="" class="remove" title="Remove dataset">[x]</a></li>
 </template>
 
 <template name="datasetsItemColumns">
-  <select class="datasets-item-columns">
+  <select class="datasets-item-columns" title="Dataset column">
     {{#each columns}}
       <option value="{{this.name}}" {{this.selected}}>{{this.name}}</option>
     {{/each}}
@@ -42,6 +43,7 @@
       <input type="text" class="query" />
       <input type="submit" value="Search" />
     </form>
+  <p class="comment">You can search for datasets and add them to the viewer. Powered by <a href="http://www.quandl.com/">Quandl</a>.</p>
   </div>
 </template>
 
@@ -71,10 +73,10 @@
 <template name="searchResultsItem">
   <li class="search-results-item">
     <ul>
+      <li class="to_date" title="To date">{{this.to_date}}</li>
+      <li class="frequency" title="Frequency">{{this.frequency}}</li>
+      <li class="from_date" title="From date">{{this.from_date}}</li>
       <li class="name">{{this.name}}</li>
-      <li class="from_date">{{this.from_date}}</li>
-      <li class="to_date">{{this.to_date}}</li>
-      <li class="frequency">{{this.frequency}}</li>
       <li class="columns">{{columns this.column_names}}</li>
       <li class="description">{{this.description}}</li>
     </ul>

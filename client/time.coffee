@@ -206,11 +206,10 @@ Template.viewer.rendered = ->
   @node = @find '.viewer'
   @viewer = new Viewer()
 
-  @viewer.svg = d3.select(@node).append('svg').attr(
-    'width', @viewer.width + @viewer.margin.left + @viewer.margin.right
-  ).attr(
-    'height', @viewer.height + @viewer.margin.top + @viewer.margin.bottom
-  )
+  width = @viewer.width + @viewer.margin.left + @viewer.margin.right
+  height = @viewer.height + @viewer.margin.top + @viewer.margin.bottom
+  @viewer.svg = d3.select(@node).style('width', width + 'px').style('height', height + 'px')
+    .insert('svg', '.comment').attr('width', width).attr('height', height)
 
   @viewer.svg.append('defs').append('clipPath').attr('id', 'clip')
     .append('rect').attr('width', @viewer.width).attr('height', @viewer.height)

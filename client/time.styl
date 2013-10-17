@@ -1,3 +1,6 @@
+body
+  font 14px "PT Sans", sans-serif
+
 svg
   font 10px sans-serif
 
@@ -14,3 +17,83 @@ path
   stroke #fff
   fill-opacity .125
   shape-rendering crispEdges
+
+.datasets
+  padding 0
+
+.color, .sp-replacer
+  margin-right 10px
+
+.datasets-item-columns
+  margin 0 10px
+
+.remove, .remove:link, .remove:hover, .remove:visited
+  color gray
+
+.search
+  text-align center
+  margin-top 40px
+
+  input
+    font-size 18px
+
+.query
+  width 400px
+
+.comment
+  color gray
+  font-size 13px
+  margin 0
+  margin-top 1px
+
+  a, a:link, a:visited
+    color dimgray
+    text-decoration none
+
+  a:hover
+    color darkgray
+    text-decoration underline
+
+.floatright
+  float right
+  margin-top 0
+
+.search-results, .search-results ul, .search-results li
+  padding 0
+  list-style none
+
+.search-results li.search-results-item
+  background white
+  padding 20px
+  margin 10px 0
+  border-radius 2px
+  box-shadow 0 0 0 1px rgba(14,41,57,0.12)
+  transition 0.2s
+
+.search-results li.search-results-item:hover
+  box-shadow 0 0 0 1px rgba(14,41,57,0.12), 0 2px 5px rgba(14,41,57,0.34)
+
+.search-results-item
+  .from_date, .to_date, .frequency, .columns
+    float right
+    margin-left 10px
+    color gray
+    font-size 13px
+
+  .name
+    font-weight bold
+
+  .description
+    margin 1em
+    margin-bottom 1.5em
+
+  .add-dataset input
+    font-size 15px
+
+.no-results, .search-results-count
+  text-align center
+  margin-bottom 25px
+
+.no-results
+  font-size 25px
+  margin-top 25px
