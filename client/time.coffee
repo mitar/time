@@ -13,6 +13,7 @@ PALETTE = [
   '#17becf'
 ]
 API_KEY = Meteor.settings?.public?.API_KEY
+BRUSH_ID = 'brush'
 
 datasets = {}
 
@@ -52,16 +53,40 @@ class Viewer
     @xAxis2 = d3.svg.axis().scale(@x2).orient('bottom')
     @yAxis = d3.svg.axis().scale(@y).orient('left')
 
+    @lastBrushExtent = null
+
     @brush = d3.svg.brush().x(@x2).on 'brush', =>
-      @x.domain(if @brush.empty() then @x2.domain() else @brush.extent())
-
-      for id, dataset of datasets
-        dataset.focusPath.attr('d', dataset.line)
-
-      @focus.select('.x.axis').call(@xAxis)
+      Brush.upsert BRUSH_ID,
+        $set:
+          brush: if @brush.empty() then null else @brush.extent()
+      ,
+        (error) ->
+          console.error if error
 
     @datesExtent = []
     @ysExtent = []
+
+  setBrush: (extent) =>
+    if _.isEqual @initialBrushExtent, extent
+      return
+    @initialBrushExtent = extent
+
+    unless @x and @x2 and not _.isEmpty datasets
+      return
+
+    @x.domain(unless extent then @x2.domain() else extent)
+
+    for id, dataset of datasets
+      dataset.focusPath.attr('d', dataset.line)
+
+    @focus.select('.x.axis').call(@xAxis)
+
+    if extent
+      @brush.extent extent
+    else
+      @brush.clear()
+
+    @context.select('.x.brush').call(@brush)
 
   computeLines: (id) =>
     datasets[id].line = d3.svg.line().interpolate('monotone').x(
@@ -94,7 +119,7 @@ class Viewer
       @computeNewExtent id
 
   resetDomains: =>
-    @x.domain(if @brush.empty() then @datesExtent else @brush.extent())
+    @x.domain(@initialBrushExtent or @datesExtent)
     @y.domain(@ysExtent)
     @x2.domain(@datesExtent)
     @y2.domain(@ysExtent)
@@ -111,6 +136,11 @@ class Viewer
     @focus.append('g').attr('class', 'y axis').call(@yAxis)
 
     @context.append('g').attr('class', 'x axis').attr('transform', 'translate(0,' + @height2 + ')').call(@xAxis2)
+
+    if @initialBrushExtent
+      @brush.extent @initialBrushExtent
+    else
+      @brush.clear()
 
     @context.append('g').attr('class', 'x brush').call(@brush)
       .selectAll('rect').attr('y', -6).attr('height', @height2 + 7)
@@ -223,8 +253,19 @@ Template.viewer.rendered = ->
         delete datasets[id]
         @viewer.removedDataset id, dataset
 
+  @handleBrush = Brush.find(BRUSH_ID).observeChanges
+    added: (id, fields) =>
+      @viewer.setBrush (fields.brush or null)
+
+    changed: (id, fields) =>
+      @viewer.setBrush (fields.brush or null)
+
+    removed: (id) =>
+      @viewer.setBrush null
+
 Template.viewer.destroyed = ->
   @handle.stop() if @handle
+  @handleBrush.stop() if @handleBrush
 
 Template.datasets.datasets = ->
   Datasets.find {}
@@ -242,6 +283,9 @@ Template.datasetsItem.rendered = ->
     Datasets.update id,
       $set:
         color: $(this).val()
+    ,
+      (error) ->
+        console.error if error
 
 Template.datasetsItem.events =
   'click .remove': (e, template) ->
@@ -254,6 +298,9 @@ Template.datasetsItemColumns.events =
     Datasets.update @_id,
       $set:
         selectedColumn: $(e.currentTarget).val()
+    ,
+      (error) ->
+        console.error if error
 
 Template.datasetsItemColumns.columns = ->
   for c in @columns
@@ -322,4 +369,6 @@ Template.searchResultsItem.events =
       columns: columns
       selectedColumn: columns[0]
       color: color
-
+    ,
+      (error) ->
+        console.error if error
