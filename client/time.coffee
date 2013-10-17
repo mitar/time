@@ -53,11 +53,11 @@ class Viewer
     @yAxis = d3.svg.axis().scale(@y).orient('left')
 
     @brush = d3.svg.brush().x(@x2).on 'brush', =>
-      return
-
-      # TODO
       @x.domain(if @brush.empty() then @x2.domain() else @brush.extent())
-      @focus.select('path').attr('d', @line)
+
+      for id, dataset of datasets
+        dataset.focusPath.attr('d', dataset.line)
+
       @focus.select('.x.axis').call(@xAxis)
 
     @datesExtent = []
@@ -94,10 +94,10 @@ class Viewer
       @computeNewExtent id
 
   resetDomains: =>
-    @x.domain(@datesExtent)
+    @x.domain(if @brush.empty() then @datesExtent else @brush.extent())
     @y.domain(@ysExtent)
-    @x2.domain(@x.domain())
-    @y2.domain(@y.domain())
+    @x2.domain(@datesExtent)
+    @y2.domain(@ysExtent)
 
   resetAxes: =>
     @focus.selectAll('g').remove()
@@ -111,6 +111,9 @@ class Viewer
     @focus.append('g').attr('class', 'y axis').call(@yAxis)
 
     @context.append('g').attr('class', 'x axis').attr('transform', 'translate(0,' + @height2 + ')').call(@xAxis2)
+
+    @context.append('g').attr('class', 'x brush').call(@brush)
+      .selectAll('rect').attr('y', -6).attr('height', @height2 + 7)
 
   resetLines: =>
     for id, dataset of datasets
@@ -133,9 +136,6 @@ class Viewer
     @resetAxes()
 
     @resetLines()
-
-    #@context.append('g').attr('class', 'x brush').call(@brush)
-    #  .selectAll('rect').attr('y', -6).attr('height', @height2 + 7)
 
   removedDataset: (id, dataset) =>
     return if datasets[id]
